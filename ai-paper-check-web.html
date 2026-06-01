@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>AI率检测</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#F2F2F7;--card:rgba(255,255,255,0.84);--text:#1D1D1F;--text2:#6C6C74;--text3:#A1A1A6;--blue:#007AFF;--blue-hover:#0066D6;--green:#34C759;--green-bg:rgba(52,199,89,0.08);--orange:#FF9500;--orange-bg:rgba(255,149,0,0.08);--red:#FF3B30;--red-bg:rgba(255,59,48,0.08);--separator:rgba(60,60,67,0.08);--shadow-md:0 4px 20px rgba(0,0,0,0.06);--radius-lg:24px;--radius-md:16px;--radius-sm:12px;--font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue","PingFang SC",sans-serif}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;min-height:100vh;line-height:1.5}
+.header{position:sticky;top:0;z-index:100;background:rgba(242,242,247,0.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:0.5px solid var(--separator)}
+.header-inner{max-width:640px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:center}
+.header-title{font-size:18px;font-weight:680;letter-spacing:-0.3px}
+.main{max-width:640px;margin:0 auto;padding:16px 20px 120px}
+.section{margin-bottom:20px}
+.section-label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;padding-left:4px}
+.input-card{position:relative;margin:0 auto;max-width:560px;background:var(--card);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-md)}
+.input-card textarea{display:block;width:100%;min-height:400px;padding:20px;border:none;background:transparent;font-family:var(--font);font-size:16px;line-height:1.8;color:var(--text);resize:vertical;outline:none}
+.input-card textarea::placeholder{color:var(--text3)}
+.run-btn-fixed{position:absolute;bottom:10px;left:16px;right:16px;padding:13px;font-size:15px}
+.char-badge{position:absolute;bottom:58px;right:16px;font-size:12px;color:var(--text3);font-weight:500;background:rgba(255,255,255,0.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:3px 10px;border-radius:100px;font-variant-numeric:tabular-nums;pointer-events:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:100px;font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s cubic-bezier(0.25,0.1,0.25,1);-webkit-tap-highlight-color:transparent;user-select:none}
+.btn:active{transform:scale(0.96)}.btn:disabled{opacity:0.35;pointer-events:none}
+.btn-primary{background:var(--blue);color:#fff;padding:15px 28px;font-size:16px;letter-spacing:-0.2px;box-shadow:0 2px 12px rgba(0,122,255,0.3)}
+.btn-primary:hover{background:var(--blue-hover)}
+.loading-state{display:flex;flex-direction:column;align-items:center;padding:40px 20px;color:var(--text2);gap:14px}
+.spinner{width:36px;height:36px;border-radius:50%;background:conic-gradient(transparent 0deg,var(--blue) 360deg);animation:spin 0.8s linear infinite;-webkit-mask:radial-gradient(transparent 55%,black 55%);mask:radial-gradient(transparent 55%,black 55%)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.results{animation:fadeUp 0.5s cubic-bezier(0.16,1,0.3,1)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.score-card{background:var(--card);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-radius:var(--radius-lg);padding:28px 24px;box-shadow:var(--shadow-md);text-align:center}
+.score-hero{display:flex;flex-direction:column;align-items:center;gap:14px}
+.ring-wrap{position:relative;width:156px;height:156px}
+.ring-wrap svg{width:156px;height:156px;transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:#E5E5EA;stroke-width:8}
+.ring-fg{fill:none;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset 1.6s cubic-bezier(0.16,1,0.3,1)}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-center .score-num{font-size:48px;font-weight:700;letter-spacing:-2px;line-height:1}
+.ring-center .score-unit{font-size:14px;font-weight:500;color:var(--text2);margin-top:2px}
+.score-badge{display:inline-flex;align-items:center;gap:5px;padding:7px 16px;border-radius:100px;font-size:14px;font-weight:600}
+.score-badge.low{background:var(--green-bg);color:#248A3D}
+.score-badge.mid{background:var(--orange-bg);color:#A35D00}
+.score-badge.high{background:var(--red-bg);color:#C70000}
+.summary-card{background:var(--card);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-radius:var(--radius-lg);padding:20px 24px;box-shadow:var(--shadow-md)}
+.dim-list{display:flex;flex-direction:column;gap:6px}
+.dim-item{display:flex;align-items:center;gap:8px}
+.dim-label{font-size:13px;min-width:80px;font-weight:500;text-align:right}
+.dim-track{flex:1;height:5px;background:#E5E5EA;border-radius:5px;overflow:hidden}
+.dim-fill{height:100%;border-radius:5px;transition:width 1.2s cubic-bezier(0.16,1,0.3,1)}
+.dim-pct{font-size:12px;font-weight:600;min-width:32px;text-align:right;font-variant-numeric:tabular-nums}
+.dim-src{font-size:9px;color:var(--text3);min-width:55px;text-align:right}
+.radar-card{background:var(--card);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-md);display:flex;justify-content:center}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+.stat-item{background:rgba(120,120,128,0.06);border-radius:var(--radius-sm);padding:14px 12px;text-align:center}
+.stat-item .stat-num{font-size:22px;font-weight:680;letter-spacing:-0.5px}
+.stat-item .stat-label{font-size:11px;color:var(--text2);margin-top:2px}
+.hl-card{background:var(--card);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-md)}
+.hl-card h3{font-size:15px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:6px}
+.hl-text{font-size:15px;line-height:2.1;white-space:pre-wrap;word-break:break-word}
+.hl-mark{display:inline;border-radius:4px;padding:1px 4px;margin:0 1px;cursor:pointer;position:relative;transition:background 0.2s}
+.hl-mark:hover{filter:brightness(0.92)}
+.hl-mark.sev3{border-bottom:2px solid #FF3B30;background:rgba(255,59,48,0.12)}
+.hl-mark.sev2{border-bottom:2px solid #FF9500;background:rgba(255,149,0,0.10)}
+.hl-mark.sev1{border-bottom:2px dashed #FF9500;background:rgba(255,149,0,0.05)}
+.hl-legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;font-size:12px;color:var(--text2)}
+.hl-legend span{display:inline-flex;align-items:center;gap:4px}
+.hl-legend .dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.sugg-list{display:flex;flex-direction:column;gap:10px}
+.sugg-item{display:flex;gap:10px;padding:14px;border-radius:var(--radius-sm);font-size:14px;line-height:1.6;align-items:flex-start}
+.sugg-item.s3{background:var(--red-bg)}
+.sugg-item.s2{background:var(--orange-bg)}
+.sugg-item.s1{background:rgba(120,120,128,0.04)}
+.sugg-badge{flex-shrink:0;font-size:11px;font-weight:600;padding:2px 8px;border-radius:100px;margin-top:1px}
+.sugg-badge.s3{background:var(--red);color:#fff}.sugg-badge.s2{background:var(--orange);color:#fff}.sugg-badge.s1{background:#C7C7CC;color:#fff}
+.sugg-body{flex:1}.sugg-orig{color:var(--text2);font-size:13px;margin-bottom:4px;font-style:italic}.sugg-tip{font-weight:500}
+.toast{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);background:rgba(30,30,32,0.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:#fff;padding:10px 24px;border-radius:100px;font-size:14px;font-weight:500;opacity:0;transition:opacity 0.35s;z-index:300;pointer-events:none;white-space:nowrap}
+::-webkit-scrollbar{width:0px}
+@media(max-width:420px){.main{padding:12px 16px 100px}.input-card textarea{padding:16px;font-size:15px}}
+</style>
+</head>
+<body>
+<header class="header"><div class="header-inner"><span class="header-title">AI率检测</span></div></header>
+<div class="main">
+<div class="section">
+<div class="input-card">
+<textarea id="ta" placeholder="粘贴论文或文章内容（至少100字）" oninput="updateCount()"></textarea>
+<span class="char-badge" id="count">0 字</span>
+<button class="btn btn-primary run-btn-fixed" id="runBtn" onclick="run()">开始检测</button>
+</div>
+</div>
+<div id="res" style="display:none"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// AI率检测
+// 校准来源:
+//   📗 ai-paper-check  (D1-D7 基础7维+权重)
+//   📕 humanizer-zh    (D8-D10 中文模式扩展)
+//   📘 humanizer-rewrite (12特征检查)
+//   📙 ai-humanizer    (D11-D13 Burstiness/TTR/Trigram)
+// ═══════════════════════════════════════════════════
+
+var S={orig:'',data:null};
+var WSUM='22+10+12+5+5+15+8+5=82% (D4/D5/D6/D7/D9/D10/D12=0)'
+
+// ── D1: 模板化表达 (ai-paper-check原15条 + 扩展) ──
+var PATTERNS=[
+  // ai-paper-check 原15条
+  {re:/随着.{2,10}的(发展|进步|深入|推进|加速)/g,w:2.5,t:'AI套话开头',sev:3,fix:'删此开头'},
+  {re:/近年来[，,].{2,15}(引起|受到|获得)/g,w:2,t:'AI背景铺垫',sev:3,fix:'非具体引用'},
+  {re:/具有重要(的)?(意义|价值|作用|影响)/g,w:2.5,t:'空洞套话',sev:3,fix:'具体化'},
+  {re:/(十分|非常|极为|格外)(必要|重要|关键|紧迫)/g,w:2,t:'强度修饰',sev:2,fix:'去掉程度'},
+  {re:/首先[，,]?\s*其次[，,]?\s*(再次|此外|最后)/g,w:3.5,t:'三段式',sev:2,fix:'取消排比'},
+  {re:/不仅.{0,20}(而且|也|还|更)/g,w:1.5,t:'递进句',sev:2,fix:'拆两句'},
+  {re:/一方面.{0,20}另一方面/g,w:2,t:'对称排比',sev:2,fix:'拆两段'},
+  {re:/(可以|能够)有效(地)?(提高|提升|降低|减少|促进|增强|改善)/g,w:1.5,t:'公式化',sev:1,fix:'具体机制'},
+  {re:/每个人都应.{0,20}(共同|一起)/g,w:3.5,t:'结尾升华',sev:3,fix:'删此句'},
+  {re:/共同维护.{0,10}(社会|公共|环境)/g,w:3,t:'升华',sev:3,fix:'具体措施'},
+  {re:/让.{0,10}(更加|变得)(美好|健康|和谐|安全)/g,w:2.5,t:'升华结尾',sev:3,fix:'客观总结'},
+  {re:/为.{0,10}(奠定|提供|打下).{0,5}基础/g,w:2,t:'套话结论',sev:2,fix:'具体动词'},
+  {re:/值得注意的(是|，)/g,w:1,t:'AI过渡',sev:1,fix:'替代'},
+  {re:/综上所述/g,w:1.5,t:'模板总结',sev:3,fix:'直接写'},
+  {re:/换言之/g,w:1,t:'AI解释',sev:1,fix:'替代'},
+  // 学术AI扩展 (humanizer-zh模式)
+  {re:/本研究(基于|采用|聚焦|探讨|分析)/g,w:3,t:'学术模板',sev:3,fix:'简化"本研究"'},
+  {re:/基于.{2,12}(理论|视角|框架|范式|逻辑)/g,w:2.5,t:'学术套路',sev:2,fix:'简化基于XX'},
+  {re:/(结果|结论|研究)表明[,，]/g,w:2,t:'AI句式',sev:2,fix:'换"发现"'},
+  {re:/本文(立足|基于|旨在|试图|拟|从)/g,w:2.5,t:'学术模板',sev:3,fix:'去"本文"'},
+  {re:/深入(剖析|分析|探讨|研究).{0,8}(内在逻辑|内在机理)/g,w:2.5,t:'四字堆砌',sev:3,fix:'精简'},
+  {re:/构建.{0,8}(系统化|可落地|体系化)(的)?(路径|体系|框架)/g,w:2,t:'模板',sev:2,fix:'具体化'},
+  {re:/以.{0,10}为.{0,4}(根基|核心|支撑|突破|引领)/g,w:2,t:'句式',sev:2,fix:'简化'},
+  {re:/成为.{0,16}(关键抓手|核心载体|重要突破口)/g,w:3,t:'夸大定位',sev:3,fix:'弱化'},
+  {re:/为.{0,20}(注入|提供|奠定).{0,6}(动力|支撑|活力|根基)/g,w:2.5,t:'套话',sev:2,fix:'具体化'},
+  // humanizer-zh: 象征性语言、宣传语言
+  {re:/(作为|充当|标志着|见证了)(.{0,20})?(关键|重要|体现)/g,w:2.5,t:'象征',sev:2,fix:'直接叙述'},
+  {re:/(拥有|有着).{0,10}(丰富|深厚|强大|大量)的/g,w:1.5,t:'宣传',sev:1,fix:'简化'},
+  {re:/(彰显|体现|展示|凸显)了.{0,6}(重要|价值|意义)/g,w:2,t:'夸大',sev:2,fix:'客观'},
+  {re:/(开启|拉开|翻开).{0,6}(序幕|篇章|时代)/g,w:2.5,t:'文学化',sev:3,fix:'具体'},
+  // 连接词/共现词
+  {re:/基于此[，,]/g,w:2.5,t:'连接词',sev:2,fix:'换"因此"'},
+  {re:/由此可见[，,]/g,w:2,t:'连接词',sev:1,fix:'换'},
+];
+
+// ai-paper-check 原连接词16个
+var CONNECTORS_BASE=['因此','所以','然而','但是','此外','同时','另外','再次','最后','总之','综上所述','换言之','更重要的是','不仅如此','与此同时','由此可见'];
+var CONNECTORS_EXT=['进而','由此','从而','于是','尽管','虽然','即便','固然','诚然'];
+var CONNECTORS=[].concat(CONNECTORS_BASE,CONNECTORS_EXT);
+
+// ai-paper-check 原空洞18个 + 扩展
+var EMPTY=['具有重要意义','十分必要','非常重要','极为关键','不可或缺','至关重要','共同维护','每个人都应','增强意识','提高认识','加强教育','完善体系','健全机制','充分发挥','积极推动','大力推进','不断加强','深化认识','高度重视','全面落实','未来可期','前景光明','大有可为','任重道远'];
+
+// D8 人味标记 (humanizer-rewrite)
+var HUMAN_MARKERS=['其实','反正','说白了','讲真','说实话','但是吧','坦白说','我觉得','我感觉','我个人','在我看来','我发现','差不多','大概','也许','可能','说不定','应该','好像','似乎','之前','后来','超','特别','真的','完全','真是','哎','呃','嗯','啊','吧','哦'];
+var AI_FLAWLESS=['不可忽视','不容忽视','不可否认','毋庸置疑','毫无疑问','深刻启示','深远影响','不可或缺','至关重要','值得我们','我们应该','我们必须'];
+
+// D11-D13 函数
+function splitZH(t){return t.split(/[。！？.!?]+/).map(function(s){return s.replace(/[\s\n]/g,'').trim()}).filter(function(s){return s.length>2})}
+function calcBurst(sents){if(sents.length<3)return 0;var l=sents.map(function(s){return s.length}),avg=l.reduce(function(a,b){return a+b})/l.length;if(avg===0)return 0;var ds=0;for(var i=1;i<l.length;i++)ds+=Math.abs(l[i]-l[i-1]);return ds/(l.length-1)/avg}
+function calcTTR(text){var c=text.replace(/[\s\n]/g,'').split('').filter(function(c){return /[\u4e00-\u9fff]/.test(c)});if(c.length<60)return 0.5;var g=[];for(var i=0;i<c.length-1;i++)g.push(c[i]+c[i+1]);return new Set(g).size/g.length}
+function calcTrig(text){var c=text.replace(/[\s\n]/g,'').split('').filter(function(c){return /[\u4e00-\u9fff]/.test(c)});if(c.length<15)return 0;var m={};for(var i=0;i<=c.length-3;i++){var g=c.slice(i,i+3).join('');m[g]=(m[g]||0)+1}var v=Object.values(m);return v.length>0?v.filter(function(x){return x>1}).length/v.length:0}
+
+function esc(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+function toast(m){var e=document.getElementById('toast');e.textContent=m;e.style.opacity='1';setTimeout(function(){e.style.opacity='0'},2200)}
+function updateCount(){var n=document.getElementById('ta').value.replace(/\s/g,'').length;document.getElementById('count').textContent=n+' 字'}
+
+// ═══════════ 核心检测函数 (13维) ═══════════
+function detectAI(text){
+  var cln=text.replace(/[\s\n\r]+/g,''),N=cln.length;
+  if(N<50)return{total:0,N:0,sc:0,pc:0,issues:['文本过短(需≥50字)']};
+
+  // D1: 模板化 (25条规则加权)
+  var d1Raw=0,d1Hits=0;
+  PATTERNS.forEach(function(p){var m=text.match(p.re);if(m){d1Raw+=m.length*p.w;d1Hits+=m.length}});
+  var d1=Math.min(100,Math.round(d1Raw/Math.max(N/500,1)*100));
+
+  // D2: 连接词密度
+  var cc=0;CONNECTORS.forEach(function(c){var m=text.match(new RegExp(esc(c),'g'));if(m)cc+=m.length});
+  var cd=cc/N*1000,d2=0;
+  if(cd>25)d2=Math.min(100,Math.round((cd-25)*2.5));
+  else if(cd>15)d2=Math.round((cd-15)*3);
+  if(cd<5&&N>200)d2=55;
+
+  // D3: 句式均匀度 (CV法)
+  var sents=splitZH(text);
+  var sl=sents.map(function(s){return s.length});
+  var d3=40,avg=0,cv=0;
+  if(sl.length>3){avg=sl.reduce(function(a,b){return a+b})/sl.length;var v=sl.reduce(function(s,l){return s+Math.pow(l-avg,2)},0)/sl.length;cv=avg>0?Math.sqrt(v)/avg:0;d3=Math.round((1-Math.min(cv,1.2)/1.2)*100)}
+
+  // D4: 空洞表述
+  var ec=0;EMPTY.forEach(function(p){var m=text.match(new RegExp(esc(p),'g'));if(m)ec+=m.length});
+  var d4=Math.min(100,Math.round((ec/N*1000)*16));
+
+  // D5: 段落平衡度
+  var paras=text.split(/\n\n+/).filter(function(p){return p.replace(/[\s\n]/g,'').length>10});
+  var d5=20;
+  if(paras.length>=3){var pl=paras.map(function(p){return p.replace(/[\s\n]/g,'').length}),ap=pl.reduce(function(a,b){return a+b})/pl.length;if(ap>0){var pv=Math.sqrt(pl.reduce(function(s,l){return s+Math.pow(l-ap,2)},0)/pl.length)/ap;d5=Math.round((1-Math.min(pv,1.2)/1.2)*100)}}
+
+  // D6: 结构模板化
+  var tl=text.split('\n').filter(function(l){var t=l.trim();return t.length>3&&t.length<40&&/^[一二三四五六七八九十\d]+[、.．]\s/.test(t)});
+  var d6=15;if(tl.length>=2){var tL=tl.map(function(t){return t.length}),aT=tL.reduce(function(a,b){return a+b})/tL.length;var tcv=aT>0?Math.sqrt(tL.reduce(function(s,l){return s+Math.pow(l-aT,2)},0)/tL.length)/aT:0;d6=tcv<0.2?80:tcv<0.4?50:20}
+
+  // D7: 参考文献
+  var rm=text.match(/参考(文献|资料)([\s\S]*)$/),d7=40;
+  if(rm){var rf=rm[0],hy=/\d{4}/.test(rf.replace(/参考(文献|资料)/g,''));var hp=/出版社|Press|期刊|Journal|学报|大学/g.test(rf);var rc=(rf.match(/\[\d+\]/g)||[]).length+(rf.match(/\d+\./g)||[]).length;if(rc>=5&&hy&&hp)d7=10;else if(rc>=3)d7=35;else d7=65}
+
+  // D8: 完美度 (humanizer-rewrite)
+  var hh=0,fh=0;
+  HUMAN_MARKERS.forEach(function(w){var m=text.match(new RegExp(esc(w),'g'));if(m)hh+=m.length});
+  AI_FLAWLESS.forEach(function(w){var m=text.match(new RegExp(esc(w),'g'));if(m)fh+=m.length});
+  var hmd=hh/N*1000,fmd=fh/N*1000,d8=50;
+  if(hmd<1.5)d8=Math.min(100,60+Math.round((1.5-hmd)*20));
+  else if(hmd>4)d8=Math.max(10,Math.round(35-(hmd-4)*5));
+  else d8=Math.round(55-hmd*10);
+  if(fmd>2.5)d8=Math.min(100,d8+Math.round(fmd*6));
+
+  // D9: 句首多样性
+  var starters=sents.map(function(s){return s.charAt(0)}).filter(function(c){return c&&c.length===1});
+  var d9=35;
+  if(starters.length>=3){var seen=new Set(starters);starters.forEach(function(c){seen.add(c)});var div=seen.size/Math.min(starters.length,8);var aiR=starters.filter(function(s){return'本该这各其'.includes(s)}).length/starters.length;if(div<0.4)d9=Math.min(90,55+Math.round((0.4-div)*100));else if(div<0.6)d9=40;else d9=Math.min(25,Math.round((1-div)*50));if(aiR>0.35)d9+=Math.round((aiR-0.35)*60);d9=Math.max(0,Math.min(100,d9))}
+
+  // D10: 标点多样性
+  var aiP=(text.match(/[。；：？！]/g)||[]).length,huP=(text.match(/[，、……—·"「」『』【】《》]/g)||[]).length,ap=aiP+huP,d10=35;
+  if(ap>3){var r=aiP/ap;if(r>0.7)d10=Math.min(95,50+Math.round((r-0.7)*130));else if(r<0.25)d10=15;else d10=Math.round(50-Math.abs(r-0.5)*120);if((text.match(/[,，]/g)||[]).length/N*1000<12&&N>150)d10=Math.min(100,d10+20)}
+
+  // D11: Burstiness 突发性 (ai-humanizer)
+  var b=calcBurst(sents),d11=50;
+  if(sents.length>=3){if(b<0.2)d11=85;else if(b<0.3)d11=70;else if(b<0.4)d11=55;else if(b<0.55)d11=40;else if(b<0.7)d11=25;else d11=10}
+
+  // D12: Bigram TTR 词汇丰富度
+  var ttr=calcTTR(text),d12=40;
+  if(N>100){if(ttr<0.15)d12=70;else if(ttr<0.25)d12=55;else if(ttr<0.40)d12=40;else if(ttr<0.55)d12=25;else d12=50}
+
+  // D13: Trigram 重复率
+  var tr=calcTrig(text),d13=40;
+  if(N>100){if(tr>0.15)d13=80;else if(tr>0.10)d13=65;else if(tr>0.06)d13=50;else if(tr>0.03)d13=35;else d13=20}
+
+  // 综合评分: 聚焦高区分度维度, D1/D8/D3权重最高
+  var w=[0.22,0.10,0.12,0.05,0.05,0,0,0.15,0,0,0.08,0,0.05];
+  var v=[d1,d2,d3,d4,d5,d6,d7,d8,d9,d10,d11,d12,d13];
+  var wsum=w.reduce(function(a,b){return a+b},0);
+  var total=0;v.forEach(function(v,i){total+=v*w[i]});
+  total=Math.round(Math.max(0,Math.min(100,total/wsum)));
+
+  // 等级
+  var level='low';if(total>=30)level='mid';if(total>=65)level='high';
+
+  // 问题
+  var issues=[];
+  if(d1>50)issues.push('🤖 模板化: 命中'+d1Hits+'处AI模板句式');
+  if(d3>55)issues.push('📏 句式均匀: '+sl.length+'句CV='+(cv*100).toFixed(1)+'%');
+  if(d8>55)issues.push('💎 完美度: 缺少个人观点/语气词');
+  if(d11>55&&sents.length>=3)issues.push('💥 Burstiness='+b.toFixed(2)+' 句子长度变化不足');
+  if(d2>55)issues.push('🔗 连接词密度'+cd.toFixed(1)+'/千字');
+  if(d4>50)issues.push('💬 存在空洞套话');
+  if(d13>55)issues.push('🔁 Trigram重复率偏高='+(tr*100).toFixed(1)+'%');
+  if(d9>55)issues.push('🔤 句首多"本/该/这"');
+  if(!issues.length)issues.push('文本无明显AI特征');
+  if(issues.length>3)issues=issues.slice(0,3);
+
+  return{total:total,level:level,d1:d1,d2:d2,d3:d3,d4:d4,d5:d5,d6:d6,d7:d7,d8:d8,d9:d9,d10:d10,d11:d11,d12:d12,d13:d13,burstiness:Math.round(b*1000)/1000,bigramTTR:Math.round(ttr*1000)/1000,trigRepeat:Math.round(tr*1000)/1000,N:N,sc:sents.length,pc:paras.length,avg:Math.round(avg),cv:(cv*100).toFixed(1),cd:cd.toFixed(1),issues:issues};
+}
+
+// ═══════════ 高亮分析 ═══════════
+function analyzeHighlights(text){
+  var matches=[],seen={};
+  PATTERNS.forEach(function(p){
+    var re=new RegExp(p.re.source,p.re.flags),m;
+    while((m=re.exec(text))!==null){
+      var key=m[0]+'@'+m.index;
+      if(!seen[key]){seen[key]=1;matches.push({start:m.index,end:m.index+m[0].length,text:m[0],tag:p.t,sev:p.sev,fix:p.fix})}
+    }
+  });
+  matches.sort(function(a,b){return a.start-b.start});
+  var merged=[];
+  matches.forEach(function(m){
+    if(merged.length>0&&m.start<merged[merged.length-1].end){
+      var last=merged[merged.length-1];
+      if(m.sev>last.sev){last.sev=m.sev;last.fix=m.fix;last.tag=m.tag}
+      last.end=Math.max(last.end,m.end);last.text=text.substring(last.start,last.end);
+    }else{merged.push(m)}
+  });
+  return merged;
+}
+
+function renderHL(text,matches){
+  if(matches.length===0)return text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  var out='',pos=0;
+  matches.forEach(function(m){
+    out+=text.substring(pos,m.start).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    out+='<span class="hl-mark sev'+m.sev+'" title="'+m.fix.replace(/"/g,'&quot;')+'">'+text.substring(m.start,m.end).replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</span>';
+    pos=m.end;
+  });
+  out+=text.substring(pos).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return out;
+}
+
+// ═══════════ 渲染 ═══════════
+function sc(s){return s<25?{c:'#34C759',l:'低',cls:'low'}:s<55?{c:'#FF9500',l:'中',cls:'mid'}:{c:'#FF3B30',l:'高',cls:'high'}}
+
+function ring(score){
+  var r=62,circ=2*Math.PI*r,c=sc(score);
+  return '<div class="score-hero"><div class="ring-wrap"><svg viewBox="0 0 156 156"><circle class="ring-bg" cx="78" cy="78" r="'+r+'"/><circle class="ring-fg" cx="78" cy="78" r="'+r+'" stroke="'+c.c+'" stroke-dasharray="'+circ+'" stroke-dashoffset="'+circ+'"/></svg><div class="ring-center"><div class="score-num" style="color:'+c.c+'">'+score+'</div><div class="score-unit">AI率 %</div></div></div><span class="score-badge '+c.cls+'">'+(c.cls==='low'?'🟢 ':c.cls==='mid'?'🟡 ':'🔴 ')+c.l+'AI率</span></div>';
+}
+
+function radar(data){
+  var w=280,h=280,cx=w/2,cy=h/2,mr=95;
+  var ds=[{v:data.d1,l:'模板化'},{v:data.d8,l:'完美度'},{v:data.d11,l:'Burst'},{v:data.d3,l:'句式'},{v:data.d2,l:'连接词'},{v:data.d13,l:'Trigram'},{v:data.d4,l:'空话'},{v:data.d9,l:'句首'},{v:data.d5,l:'段落'},{v:data.d6,l:'结构'},{v:data.d10,l:'标点'},{v:data.d12,l:'词丰富'}];
+  var n=ds.length,step=2*Math.PI/n;
+  var s='<svg viewBox="0 0 '+w+' '+h+'" style="max-width:280px"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="rgba(0,122,255,0.12)"/><stop offset="100%" stop-color="rgba(0,122,255,0.03)"/></linearGradient></defs>';
+  for(var ri=1;ri<=5;ri++){var rr=mr/5*ri,pts='';for(var i=0;i<=n;i++){var a=step*i-Math.PI/2;pts+=(cx+rr*Math.cos(a))+','+(cy+rr*Math.sin(a))+' '}s+='<polygon points="'+pts+'" fill="none" stroke="#E5E5EA" stroke-width="0.5"/>'}
+  for(var i=0;i<n;i++){var a=step*i-Math.PI/2;s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+mr*Math.cos(a))+'" y2="'+(cy+mr*Math.sin(a))+'" stroke="#E5E5EA" stroke-width="0.5"/>'}
+  var pts='';ds.forEach(function(d,i){var a=step*i-Math.PI/2,r=d.v/100*mr;pts+=(cx+r*Math.cos(a))+','+(cy+r*Math.sin(a))+' '});
+  s+='<polygon points="'+pts+'" fill="url(#g)" stroke="#007AFF" stroke-width="2" stroke-linejoin="round"/>';
+  ds.forEach(function(d,i){var a=step*i-Math.PI/2,r=d.v/100*mr,x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);s+='<circle cx="'+x+'" cy="'+y+'" r="3" fill="#007AFF"/>';var la=step*i-Math.PI/2,lx=cx+(mr+18)*Math.cos(la),ly=cy+(mr+18)*Math.sin(la);s+='<text x="'+lx+'" y="'+ly+'" text-anchor="middle" dominant-baseline="middle" font-size="9" fill="#1D1D1F" font-family="system-ui,sans-serif">'+d.l+' '+d.v+'%</text>'});
+  s+='</svg>';return s;
+}
+
+function dims(data){
+
+  var labels=['D1 模板化','D2 连接词','D3 句式','D4 空洞','D5 段落','D6 结构','D7 文献','D8 完美度','D9 句首','D10 标点','D11 Burst','D12 TTR','D13 Trigram'];
+  var srcs=['ai-pc','ai-pc','ai-pc','ai-pc','ai-pc','ai-pc','ai-pc','h-rewrite','h-zh','h-zh','ai-hz','ai-hz','ai-hz'];
+  var vals=[data.d1,data.d2,data.d3,data.d4,data.d5,data.d6,data.d7,data.d8,data.d9,data.d10,data.d11,data.d12,data.d13];
+  var html='';
+  for(var i=0;i<13;i++){var c=vals[i]<25?'#34C759':vals[i]<55?'#FF9500':'#FF3B30';html+='<div class="dim-item"><span class="dim-label">'+labels[i]+'</span><div class="dim-track"><div class="dim-fill" style="background:'+c+';width:'+vals[i]+'%"></div></div><span class="dim-pct" style="color:'+c+'">'+vals[i]+'%</span><span class="dim-src">'+srcs[i]+'</span></div>'}
+  return html;
+}
+
+// ═══════════ 主流程 ═══════════
+function run(){
+  var text=document.getElementById('ta').value.trim();
+  if(text.replace(/\s/g,'').length<50){toast('请至少输入50字');return}
+  S.orig=text;
+  var btn=document.getElementById('runBtn');
+  btn.disabled=true;btn.textContent='检测中…';
+  var res=document.getElementById('res');
+  res.style.display='block';
+  res.innerHTML='<div class="loading-state"><div class="spinner"></div><p style="font-size:14px;color:var(--text2)">检测中…</p></div>';
+  res.scrollIntoView({behavior:'smooth',block:'start'});
+  setTimeout(function(){
+    try{
+      var d=detectAI(text);S.data=d;
+      var hl=analyzeHighlights(text);
+      var htext=renderHL(text,hl);
+      var suggs=hl.map(function(h){
+        return '<div class="sugg-item s'+h.sev+'"><span class="sugg-badge s'+(h.sev===3?'高':h.sev===2?'中':'低')+'"></span><div class="sugg-body"><div class="sugg-orig">"'+h.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'"</div><div class="sugg-tip">💡 '+h.fix+'</div></div></div>';
+      }).join('');
+      res.innerHTML='<div class="results">'+
+        '<div class="section"><div class="section-label">📊 AI率评分 <span style="font-size:10px;color:var(--text3);font-weight:normal">'+d.total+'% ['+(d.level==='low'?'低':d.level==='mid'?'中':'高')+']</span></div><div class="score-card">'+ring(d.total)+'</div></div>'+
+        '<div class="section"><div class="section-label">📈 12维雷达图</div><div class="radar-card">'+radar(d)+'</div></div>'+
+        '<div class="section"><div class="section-label">📋 维度明细 <span style="font-size:10px;color:var(--text3);font-weight:normal">权重:'+WSUM+'</span></div><div class="summary-card"><div class="dim-list">'+dims(d)+'</div></div></div>'+
+        '<div class="section"><div class="section-label">📐 统计 <span style="font-size:10px;color:var(--text3);font-weight:normal">B='+d.burstiness+' TTR='+d.bigramTTR+' Trig='+d.trigRepeat+' CV='+d.cv+'%</span></div><div class="summary-card"><div class="stats-row"><div class="stat-item"><div class="stat-num">'+d.N+'</div><div class="stat-label">字数</div></div><div class="stat-item"><div class="stat-num">'+d.sc+'</div><div class="stat-label">句子</div></div><div class="stat-item"><div class="stat-num">'+d.pc+'</div><div class="stat-label">段落</div></div></div></div></div>'+
+        '<div class="section"><div class="section-label">⚠️ 问题 ('+d.issues.length+'条)</div><div class="summary-card"><div style="font-size:14px;line-height:2">'+d.issues.map(function(i){return '• '+i}).join('<br>')+'</div></div></div>'+
+        '<div class="section"><div class="section-label">🔍 AI痕迹高亮 ('+hl.length+'处)</div><div class="hl-card"><div class="hl-legend"><span><span class="dot" style="background:rgba(255,59,48,0.35);border:1px solid #FF3B30;width:10px;height:10px;border-radius:3px"></span> 高</span><span><span class="dot" style="background:rgba(255,149,0,0.30);border:1px solid #FF9500;width:10px;height:10px;border-radius:3px"></span> 中</span><span><span class="dot" style="background:rgba(255,149,0,0.15);border:1px dashed #FF9500;width:10px;height:10px;border-radius:3px"></span> 弱</span></div><div class="hl-text">'+htext+'</div></div></div>'+
+        (hl.length>0?'<div class="section"><div class="section-label">✏️ 改写建议</div><div class="summary-card"><div class="sugg-list">'+suggs+'</div></div></div>':'')+
+      '</div>';
+      btn.disabled=false;btn.textContent='重新检测';
+      setTimeout(function(){res.querySelector('.score-card')?.scrollIntoView({behavior:'smooth',block:'start'})},100);
+    }catch(e){
+      res.innerHTML='<div class="loading-state"><p style="font-size:14px;color:var(--red)">出错了：'+e.message+'</p><p style="font-size:12px;color:var(--text2)">请尝试缩短文本</p></div>';
+      btn.disabled=false;btn.textContent='重试';
+    }
+  },200);
+}
+</script>
+</body>
+</html>
